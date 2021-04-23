@@ -19,24 +19,24 @@ import (
 )
 
 func main() {
-	// Create the client and retrieve the thread
-	c := api.DefaultClient()
-	t, _, _ := c.GetThread("570368", "po", false, "http")
-
-	// Download all files from the thread
-	for _, p := range t.Posts {
-		if p.HasFile {
-			// Download the file
-			m, _ := c.GetFileFromPost(p, "http")
-
-			// Create file on fileystem
-			out, _ := os.Create(m.FilenameExt)
-			defer out.Close()
-
-			// Copy the contents to the file
-			_, _ = io.Copy(out, m.Body)
-		}
-	}
+    // Create the client and retrieve the thread
+    c := api.DefaultClient()
+    t, _, _ := c.GetThread("570368", "po", false, "http")
+    
+    // Download all files from the thread
+    for _, p := range t.Posts {
+        if p.HasFile {
+            // Download the file
+            m, _ := c.GetFileFromPost(p, "http")
+    
+            // Create file on fileystem
+            out, _ := os.Create(m.FilenameExt)
+            defer out.Close()
+    
+            // Copy the contents to the file
+            _, _ = io.Copy(out, m.Body)
+        }
+    }
 }
 ```
 

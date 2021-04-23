@@ -26,7 +26,7 @@ func (c *Client) GetBoards(ifsm bool, scheme HTTPScheme) (*Boards, bool, error) 
 	resp, err := c.createAndSendRequest("GET", APIDomain, "", BoardsEndpoint, scheme, ifsm)
 	if err != nil {
 		return nil, false, err
-	} else if resp.StatusCode == 304  {
+	} else if resp.StatusCode == 304 {
 		return nil, false, nil
 	}
 	defer resp.Body.Close()
@@ -49,7 +49,7 @@ func (c *Client) GetThreads(board string, ifsm bool, scheme HTTPScheme) (*Thread
 	resp, err := c.createAndSendRequest("GET", APIDomain, board, ThreadListEndpoint, scheme, ifsm)
 	if err != nil {
 		return nil, false, err
-	} else if resp.StatusCode == 304  {
+	} else if resp.StatusCode == 304 {
 		return nil, false, nil
 	}
 	defer resp.Body.Close()
@@ -81,7 +81,7 @@ func (c *Client) GetCatalog(board string, ifsm bool, scheme HTTPScheme) (*Catalo
 	resp, err := c.createAndSendRequest("GET", APIDomain, board, CatalogEndpoint, scheme, ifsm)
 	if err != nil {
 		return nil, false, err
-	} else if resp.StatusCode == 304  {
+	} else if resp.StatusCode == 304 {
 		return nil, false, nil
 	}
 	defer resp.Body.Close()
@@ -124,7 +124,7 @@ func (c *Client) GetArchive(board string, ifsm bool, scheme HTTPScheme) (*Archiv
 	resp, err := c.createAndSendRequest("GET", APIDomain, board, ArchiveEndpoint, scheme, ifsm)
 	if err != nil {
 		return nil, false, err
-	} else if resp.StatusCode == 304  {
+	} else if resp.StatusCode == 304 {
 		return nil, false, nil
 	}
 	defer resp.Body.Close()
@@ -157,7 +157,7 @@ func (c *Client) GetPage(page int, board string, ifsm bool, scheme HTTPScheme) (
 	resp, err := c.createAndSendRequest("GET", APIDomain, board, strconv.Itoa(page)+".json", scheme, ifsm)
 	if err != nil {
 		return nil, false, err
-	} else if resp.StatusCode == 304  {
+	} else if resp.StatusCode == 304 {
 		return nil, false, nil
 	}
 	defer resp.Body.Close()
@@ -182,7 +182,7 @@ func (c *Client) GetPage(page int, board string, ifsm bool, scheme HTTPScheme) (
 		}
 	}
 
-	p.No= page
+	p.No = page
 	p.Board = strings.Trim(board, "/")
 
 	return &p, true, nil
@@ -196,10 +196,10 @@ func (c *Client) RefreshPage(p *Page, ifsm bool, scheme HTTPScheme) (*Page, bool
 // Returns ErrNotFound on 404. If using If-Modified-Since headers and a 304 is received then false is returned
 // for the bool and a nil pointer to the struct is returned.
 func (c *Client) GetThread(opID, board string, ifsm bool, scheme HTTPScheme) (*Thread, bool, error) {
-	resp, err := c.createAndSendRequest("GET", APIDomain, board, "thread/" + opID + ".json", scheme, ifsm)
+	resp, err := c.createAndSendRequest("GET", APIDomain, board, "thread/"+opID+".json", scheme, ifsm)
 	if err != nil {
 		return nil, false, err
-	} else if resp.StatusCode == 304  {
+	} else if resp.StatusCode == 304 {
 		return nil, false, nil
 	}
 	defer resp.Body.Close()
@@ -229,5 +229,5 @@ func (c *Client) GetThread(opID, board string, ifsm bool, scheme HTTPScheme) (*T
 }
 
 func (c *Client) RefreshThread(t *Thread, ifsm bool, scheme HTTPScheme) (*Thread, bool, error) {
-	return c.GetThread(strconv.Itoa(t.Posts[0].No), t.Board, ifsm, scheme)
+	return c.GetThread(strconv.Itoa(t.No), t.Board, ifsm, scheme)
 }
