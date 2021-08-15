@@ -5,13 +5,9 @@ import (
 	"crypto/md5"
 	"encoding/base64"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"strings"
-
-	//_ "image/gif"
-	//_ "image/jpeg"
-	//_ "image/png"
-	"io"
 )
 
 type Media struct {
@@ -40,13 +36,13 @@ func (c *Client) getFileFromID(id, ext, filename, subdomain, board, endpoint str
 
 	hash := md5.Sum(data)
 	media := Media{
-		Body: ioutil.NopCloser(bytes.NewReader(data)),
-		Filename: filename,
-		ID:   id,
-		Ext:  ext,
-		URL:  formatURL(subdomain, board, endpoint, scheme),
+		Body:        ioutil.NopCloser(bytes.NewReader(data)),
+		Filename:    filename,
+		ID:          id,
+		Ext:         ext,
+		URL:         formatURL(subdomain, board, endpoint, scheme),
 		FilenameExt: filename + ext,
-		MD5: base64.StdEncoding.EncodeToString(hash[:]),
+		MD5:         base64.StdEncoding.EncodeToString(hash[:]),
 	}
 
 	return &media, nil
@@ -84,7 +80,6 @@ func (c *Client) GetCustomSpoiler(num int, board string, scheme HTTPScheme) (*Me
 	spoiler := fmt.Sprintf("spoiler-%s%d", board, num)
 	return c.getFileFromID(spoiler, ".png", spoiler, StaticDomain, "image/", spoiler+".png", scheme)
 
-
 }
 
 func (c *Client) GetStaticAsset(endpoint string, scheme HTTPScheme) (*Media, error) {
@@ -92,7 +87,7 @@ func (c *Client) GetStaticAsset(endpoint string, scheme HTTPScheme) (*Media, err
 	if len(elem) < 2 {
 		return nil, ErrInvalidAssetFormat
 	}
-	board, route := elem[0] + "/", strings.Join(elem[1:], "/")
+	board, route := elem[0]+"/", strings.Join(elem[1:], "/")
 
 	elem = strings.Split(route, ".")
 	if len(elem) < 2 {

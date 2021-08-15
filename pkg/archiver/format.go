@@ -1,11 +1,13 @@
 package archiver
 
 import (
-	"github.com/fiwippi/crow/pkg/api"
-	"github.com/rs/zerolog/log"
-	"golang.org/x/net/html"
 	"io"
 	"strings"
+
+	"github.com/rs/zerolog/log"
+	"golang.org/x/net/html"
+
+	"github.com/fiwippi/crow/pkg/api"
 )
 
 // Removes the advert divs from the doc
@@ -62,7 +64,7 @@ func (a *Archiver) formatHTML(data io.Reader, errChan chan error, htmlChan chan 
 	redirect(doc, a, t)
 	removeUnwanted(doc)
 
-	errChan <-nil
+	errChan <- nil
 	htmlChan <- doc
 
 	log.Info().Int("no", t.No).Str("board", t.Board).Msg("Done formatting HTML data")

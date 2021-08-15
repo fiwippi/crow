@@ -2,23 +2,27 @@ package archiver
 
 import (
 	"bytes"
-	"github.com/fiwippi/crow/pkg/api"
-	"github.com/rs/zerolog/log"
-	"golang.org/x/net/html"
 	"io"
 	"io/ioutil"
 	"regexp"
 	"strings"
+
+	"github.com/rs/zerolog/log"
+	"golang.org/x/net/html"
+
+	"github.com/fiwippi/crow/pkg/api"
 )
 
 func redirectA(n *html.Node, t *api.Thread) {
 	for i, v := range n.Attr {
-		if v.Key == "href" && strings.Contains(v.Val, api.MediaDomain) {
-			endpoint := strings.TrimPrefix(v.Val, "//" + api.MediaDomain + "/" + t.Board + "/")
-			if strings.Contains(endpoint, "s") {
-				n.Attr[i].Val = "thumbs/"+ endpoint
-			} else {
-				n.Attr[i].Val = "images/" + endpoint
+		for _, domain := range []string{api.MediaDomain, api.SecondMediaDomain} {
+			if v.Key == "href" && strings.Contains(v.Val, domain) {
+				endpoint := strings.TrimPrefix(v.Val, "//"+domain+"/"+t.Board+"/")
+				if strings.Contains(endpoint, "s") {
+					n.Attr[i].Val = "thumbs/" + endpoint
+				} else {
+					n.Attr[i].Val = "images/" + endpoint
+				}
 			}
 		}
 	}
@@ -28,7 +32,7 @@ func redirectLink(n *html.Node, a *Archiver, t *api.Thread) {
 	for i, v := range n.Attr {
 		if v.Key == "href" && strings.Contains(v.Val, api.StaticDomain) {
 			// Download the linked static asset
-			endpoint := strings.TrimPrefix(v.Val, "//" + api.StaticDomain + "/")
+			endpoint := strings.TrimPrefix(v.Val, "//"+api.StaticDomain+"/")
 			m, err := a.c.GetStaticAsset(endpoint, "http")
 			if err != nil {
 				log.Error().Err(err).Str("file", endpoint).Msg("Failed to download file")
@@ -53,14 +57,14 @@ func redirectLink(n *html.Node, a *Archiver, t *api.Thread) {
 				matches := urlRegex.FindAllStringIndex(scriptStr, -1)
 				if matches != nil {
 					for _, v := range matches {
-						match := scriptStr[v[0]:v[1]+50]
+						match := scriptStr[v[0] : v[1]+50]
 						bracketIndex := strings.Index(match, ")")
-						staticURL := scriptStr[v[0]:v[0]+bracketIndex]
+						staticURL := scriptStr[v[0] : v[0]+bracketIndex]
 
 						endpoint := strings.TrimPrefix(staticURL, "url(/")
 						oldEndpoints = append(oldEndpoints, endpoint)
 						endpoint = strings.TrimPrefix(endpoint, "/s.4cdn.org/")
-						newEndpoints = append(newEndpoints, "\"" + strings.ReplaceAll(endpoint, "image", "assets") + "\"")
+						newEndpoints = append(newEndpoints, "\""+strings.ReplaceAll(endpoint, "image", "assets")+"\"")
 
 						_, found := a.d[t.No].downloaded[endpoint]
 						if !found {
@@ -110,9 +114,9 @@ func redirectImage(n *html.Node, a *Archiver, t *api.Thread) {
 		if v.Key == "src" {
 			// If the image is media then it's already being downloaded in dlThreadFiles so only redirect url
 			if strings.Contains(v.Val, api.MediaDomain) {
-				endpoint := strings.TrimPrefix(v.Val, "//" + api.MediaDomain + "/" + t.Board + "/")
+				endpoint := strings.TrimPrefix(v.Val, "//"+api.MediaDomain+"/"+t.Board+"/")
 				if strings.Contains(endpoint, "s") {
-					n.Attr[i].Val = "thumbs/"+ endpoint
+					n.Attr[i].Val = "thumbs/" + endpoint
 				} else {
 					n.Attr[i].Val = "images/" + endpoint
 				}
@@ -120,7 +124,7 @@ func redirectImage(n *html.Node, a *Archiver, t *api.Thread) {
 
 			// If it's a static asset then download it
 			if strings.Contains(v.Val, api.StaticDomain) {
-				endpoint := strings.TrimPrefix(v.Val, "//" + api.StaticDomain + "/")
+				endpoint := strings.TrimPrefix(v.Val, "//"+api.StaticDomain+"/")
 				_, found := a.d[t.No].downloaded[endpoint]
 				if !found {
 					a.d[t.No].downloaded[endpoint] = exists
@@ -159,6 +163,16 @@ func redirectDiv(n *html.Node, a *Archiver, t *api.Thread) {
 				a.d[t.No].wg.Add(1)
 				go a.saveFile(m, a.d[t.No].assetDir, t, 0, 0, "assets")
 			}
+
+			// We add the banner image manually since the JS script does not add it in
+			imgNode := &html.Node{
+				Type: html.ElementNode,
+				Data: "img",
+				Attr: []html.Attribute{
+					{"", "src", "assets" + endpoint},
+				},
+			}
+			n.AppendChild(imgNode)
 		}
 	}
 }
@@ -173,7 +187,7 @@ func redirectScript(n *html.Node, a *Archiver, t *api.Thread) {
 		// Download the wanted js scripts
 		if v.Key == "src" && strings.Contains(v.Val, api.StaticDomain) {
 			// Download the scripts
-			endpoint := strings.TrimPrefix(v.Val, "//" + api.StaticDomain + "/")
+			endpoint := strings.TrimPrefix(v.Val, "//"+api.StaticDomain+"/")
 			m, err := a.c.GetStaticAsset(endpoint, "http")
 			if err != nil {
 				log.Error().Err(err).Str("file", endpoint).Msg("Failed to download file")

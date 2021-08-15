@@ -9,10 +9,11 @@ import (
 
 const (
 	// 4chan Domains
-	APIDomain    = "a.4cdn.org" // This domain serves all 4chan API endpoints in the form of static json files.
-	MediaDomain  = "i.4cdn.org" // This is the primary content domain used for serving user submitted media attached to posts.
-	StaticDomain = "s.4cdn.org" // Serves all static site content including icons, banners, CSS and JavaScript files.
-	BoardsDomain = "boards.4chan.org"
+	APIDomain         = "a.4cdn.org" // This domain serves all 4chan API endpoints in the form of static json files.
+	MediaDomain       = "i.4cdn.org" // This is the primary content domain used for serving user submitted media attached to posts.
+	StaticDomain      = "s.4cdn.org" // Serves all static site content including icons, banners, CSS and JavaScript files.
+	BoardsDomain      = "boards.4chan.org"
+	SecondMediaDomain = "is2.4chan.org" // Some media files also served here
 
 	// API Endpoints
 	BoardsEndpoint     = "boards.json"  // A list of all boards and their attributes.

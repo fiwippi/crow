@@ -3,12 +3,13 @@ package api
 import (
 	"context"
 	"fmt"
-	"golang.org/x/time/rate"
 	"log"
 	"net/http"
 	"strings"
 	"sync"
 	"time"
+
+	"golang.org/x/time/rate"
 )
 
 var gmt *time.Location
@@ -51,8 +52,8 @@ func NewClient(apiPerSec, mediaPerSec int) *Client {
 	return &Client{
 		apiHTTPClient:    &http.Client{Timeout: 30 * time.Second},
 		mediaHTTPClient:  &http.Client{Timeout: 30 * time.Second},
-		apiRateLimiter:   rate.NewLimiter(rate.Every(time.Second / time.Duration(apiPerSec)), 1),
-		mediaRateLimiter: rate.NewLimiter(rate.Every(time.Second / time.Duration(mediaPerSec)), 1),
+		apiRateLimiter:   rate.NewLimiter(rate.Every(time.Second/time.Duration(apiPerSec)), 1),
+		mediaRateLimiter: rate.NewLimiter(rate.Every(time.Second/time.Duration(mediaPerSec)), 1),
 		mu:               sync.Mutex{},
 		lastAccessed:     make(map[string]time.Time),
 	}
@@ -115,7 +116,7 @@ func (c *Client) sendRequest(req *http.Request, ifsm bool, subdomain string) (*h
 }
 
 // Wraps sendRequest to be able to specify the method and url already
-func (c *Client) createAndSendRequest(method, subdomain, board, endpoint string, scheme HTTPScheme, ifsm bool) (*http.Response, error){
+func (c *Client) createAndSendRequest(method, subdomain, board, endpoint string, scheme HTTPScheme, ifsm bool) (*http.Response, error) {
 	if scheme == "" {
 		scheme = HTTP
 	} else if !validScheme(scheme) {

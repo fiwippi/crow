@@ -3,10 +3,12 @@ package archiver
 import (
 	"bytes"
 	_ "embed"
-	"github.com/fiwippi/crow/pkg/api"
-	"github.com/rs/zerolog/log"
 	"io"
 	"os"
+
+	"github.com/rs/zerolog/log"
+
+	"github.com/fiwippi/crow/pkg/api"
 )
 
 //go:embed assets/icons/arrow_down.png
@@ -50,16 +52,16 @@ func (a *Archiver) saveIcons(t *api.Thread) {
 		return
 	}
 
-	saveIcon(path + "arrow_down.png", iconArrowDown)
-	saveIcon(path + "arrow_down2.png", iconArrowDown2)
-	saveIcon(path + "arrow_right.png", iconArrowRight)
-	saveIcon(path + "arrow_up.png", iconArrowUp)
-	saveIcon(path + "cross.png", iconCross)
-	saveIcon(path + "post_expand_minus.png", iconPostExpandMinus)
-	saveIcon(path + "post_expand_plus.png", iconPostExpandPlus)
-	saveIcon(path + "post_expand_rotate.gif", iconPostExpandRotate)
-	saveIcon(path + "refresh.png", iconRefresh)
-	saveIcon(path + "report.png", iconReport)
+	saveIcon(path+"arrow_down.png", iconArrowDown)
+	saveIcon(path+"arrow_down2.png", iconArrowDown2)
+	saveIcon(path+"arrow_right.png", iconArrowRight)
+	saveIcon(path+"arrow_up.png", iconArrowUp)
+	saveIcon(path+"cross.png", iconCross)
+	saveIcon(path+"post_expand_minus.png", iconPostExpandMinus)
+	saveIcon(path+"post_expand_plus.png", iconPostExpandPlus)
+	saveIcon(path+"post_expand_rotate.gif", iconPostExpandRotate)
+	saveIcon(path+"refresh.png", iconRefresh)
+	saveIcon(path+"report.png", iconReport)
 
 	log.Info().Int("no", t.No).Str("board", t.Board).Msg("Finished saving icons")
 }

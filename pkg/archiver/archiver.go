@@ -2,17 +2,20 @@ package archiver
 
 import (
 	"fmt"
-	"github.com/fiwippi/crow/pkg/api"
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
-	"golang.org/x/net/html"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
+	"golang.org/x/net/html"
+
+	"github.com/fiwippi/crow/pkg/api"
 )
 
 // Key for maps to take less space than bool
-type void struct {}
+type void struct{}
+
 var exists void
 
 // This should be the entrypoint to the package since NewArchiver()
@@ -40,8 +43,8 @@ func NewArchiver(c *api.Client, outputDir string) *Archiver {
 	outputDir += "4chan/"
 
 	return &Archiver{
-		c: c,
-		d: make(map[int]*state),
+		c:         c,
+		d:         make(map[int]*state),
 		outputDir: outputDir,
 	}
 }
@@ -76,9 +79,10 @@ func (a *Archiver) ArchiveThread(t *api.Thread, overwrite, validateMD5 bool) err
 	errs := make(chan error)
 	a.d[t.No].wg.Add(1)
 	go a.formatHTML(data, errs, nodes, t)
-	err = <- errs
+	err = <-errs
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to parse html doc")
+		close(nodes)
 		return err
 	}
 	root := <-nodes

@@ -2,12 +2,14 @@ package archiver
 
 import (
 	"fmt"
-	"github.com/fiwippi/crow/pkg/api"
-	"github.com/rs/zerolog/log"
 	"io"
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/rs/zerolog/log"
+
+	"github.com/fiwippi/crow/pkg/api"
 )
 
 // Saves a media file to a specified output directory
@@ -26,7 +28,7 @@ func (a *Archiver) saveFile(m *api.Media, dir string, t *api.Thread, count, tota
 	}
 
 	// Ensure the directory exists
-	x := strings.Split(dir + m.ID + m.Ext, "/")
+	x := strings.Split(dir+m.ID+m.Ext, "/")
 	fullDir := strings.Join(x[:len(x)-1], "/")
 	if _, err := os.Stat(fullDir); os.IsNotExist(err) {
 		err := os.MkdirAll(fullDir, os.ModePerm)
@@ -39,7 +41,7 @@ func (a *Archiver) saveFile(m *api.Media, dir string, t *api.Thread, count, tota
 	// Create the file on the host
 	out, err := os.Create(dir + m.ID + m.Ext)
 	if err != nil {
-		log.Error().Err(err).Str("file", m.ID + m.Ext).Msg("Failed to create file")
+		log.Error().Err(err).Str("file", m.ID+m.Ext).Msg("Failed to create file")
 		return
 	}
 	defer out.Close()
@@ -47,7 +49,7 @@ func (a *Archiver) saveFile(m *api.Media, dir string, t *api.Thread, count, tota
 	// Copy the contents to the file
 	_, err = io.Copy(out, m.Body)
 	if err != nil {
-		log.Error().Err(err).Str("file", m.ID + m.Ext).Msg("Failed to write file")
+		log.Error().Err(err).Str("file", m.ID+m.Ext).Msg("Failed to write file")
 		return
 	}
 }
@@ -74,7 +76,7 @@ func (a *Archiver) dlThreadFiles(t *api.Thread) {
 			// Always download thumbnails, cannot verify MD5 of thumbnail so always save
 			m, err := a.c.GetThumbnailFromPost(p, "http")
 			if err != nil {
-				log.Error().Err(err).Str("file", p.Filename + "s.jpg").Msg("Failed to download file thumbnail")
+				log.Error().Err(err).Str("file", p.Filename+"s.jpg").Msg("Failed to download file thumbnail")
 				count += 1
 			} else {
 				a.d[t.No].wg.Add(1)
@@ -91,14 +93,14 @@ func (a *Archiver) dlThreadFiles(t *api.Thread) {
 			}
 			m, err = a.c.GetFileFromPost(p, "http")
 			if err != nil {
-				log.Error().Err(err).Str("file", p.ImageID.String() + p.Ext).Msg("Failed to download file")
+				log.Error().Err(err).Str("file", p.ImageID.String()+p.Ext).Msg("Failed to download file")
 				count += 1
 				continue
 			}
 
 			// Ensure it has a valid MD5 Base64 encoded hash
 			if a.d[t.No].md5 && !api.VerifyMD5(p, m) {
-				log.Error().Str("file", p.ImageID.String() + p.Ext).Msg("MD5 hash of download does not match api supplied MD5, retrying...")
+				log.Error().Str("file", p.ImageID.String()+p.Ext).Msg("MD5 hash of download does not match api supplied MD5, retrying...")
 				m, err := a.c.GetFileFromPost(p, "http")
 				if (err != nil) || (err == nil && !api.VerifyMD5(p, m)) {
 					log.Printf("Retry failed, download failed for: %s\n", p.Filename+p.Ext)
