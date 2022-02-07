@@ -20,23 +20,21 @@ func (bit *Bool) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-// Unix Timestamp
+// Timestamp is a time.Time which unmarshalls from a UNIX timestamp
 type Timestamp struct {
 	time.Time
 }
 
 // UnmarshalJSON decodes an int64 timestamp into a time.Time object
 func (p *Timestamp) UnmarshalJSON(bytes []byte) error {
-	// 1. Decode the bytes into an int64
+	// Decode the bytes into an int64
 	var raw int64
 	err := json.Unmarshal(bytes, &raw)
-
 	if err != nil {
-		fmt.Printf("error decoding timestamp: %s\n", err)
-		return err
+		return fmt.Errorf("error decoding timestamp: %w", err)
 	}
 
-	// 2 - Parse the unix timestamp
+	// Parse the unix timestamp
 	*&p.Time = time.Unix(raw, 0)
 	return nil
 }

@@ -6,132 +6,134 @@ import (
 	"log"
 	"net/http"
 	"strings"
-	"sync"
 	"time"
 
 	"golang.org/x/time/rate"
 )
 
-var gmt *time.Location
-
-func init() {
-	var err error
-	gmt, err = time.LoadLocation("GMT")
+var gmt = func() *time.Location {
+	t, err := time.LoadLocation("GMT")
 	if err != nil {
-		log.Fatalf("Failed to load GMT time: %s\n", err)
+		log.Fatalf("failed to load GMT time: %s\n", err)
 	}
-}
+	return t
+}()
 
+var ErrNotFound = fmt.Errorf("404 not found")
+
+const (
+	ApiDomain    = "a.4cdn.org"       // This domain serves all 4chan API endpoints in the form of static json files.
+	MediaDomainA = "i.4cdn.org"       // This is the primary content domain used for serving user submitted media attached to posts.
+	MediaDomainB = "is2.4chan.org"    // Some media files also served here
+	StaticDomain = "s.4cdn.org"       // Serves all static site content including icons, banners, CSS and JavaScript files.
+	BoardsDomain = "boards.4chan.org" // Serves the front-end html data
+)
+
+// Client makes requests to the 4chan api and media/static endpoints
 type Client struct {
-	apiHTTPClient    *http.Client         // Client used to make requests to the api endpoint
-	mediaHTTPClient  *http.Client         // Client used to make requests to the media and static endpoints
-	apiRateLimiter   *rate.Limiter        // Should not be more than 1 request second
-	mediaRateLimiter *rate.Limiter        // Find limit for this
-	lastAccessed     map[string]time.Time // Keeps track of the last time an endpoint was accessed to see if an If-Modified-Since header should be set
-	mu               sync.Mutex           // Synchronises access when editing the lastAccessed map
+	api          *http.Client
+	media        *http.Client
+	apiLimiter   *rate.Limiter // Should be no more than 1 request per second
+	mediaLimiter *rate.Limiter
+
+	// SSL decides whether the API should make requests using HTTPS
+	// Note:
+	//   - Make API requests using the same protocol as the app.
+	//   - Only use SSL when a user is accessing your app over HTTPS.
+	SSL bool
+	// Supplies the If-Modified-Since header, i.e. the time that the URL
+	// was last accessed is sent to the API. A response with a 304 status
+	// code is returned if no changes have occurred since then (meaning
+	// no new content exists)
+	IFMS bool
 }
 
-//
-func formatURL(subdomain, board, endpoint string, scheme HTTPScheme) string {
-	if board != "" {
-		board = strings.Trim(board, "/")
-		return fmt.Sprintf("%s://%s/%s/%s", scheme, subdomain, board, endpoint)
-	}
-	return fmt.Sprintf("%s://%s/%s", scheme, subdomain, endpoint)
-}
-
-// Returns client with at most 1 request to the api per second
-// and 4 requests per sec to media endpoints
+// DefaultClient returns client with at most 1 request to the
+// api per second and 8 requests per sec to media endpoints.
+// It used SSL and the If-Modified-Since header by default.
 func DefaultClient() *Client {
-	return NewClient(1, 8)
+	return NewClient(1, 8, true, true)
 }
 
-// How many requests to make to the api and media endpoints
-// per second
-func NewClient(apiPerSec, mediaPerSec int) *Client {
+func NewClient(apiPerSec, mediaPerSec int, ssl, ifms bool) *Client {
 	return &Client{
-		apiHTTPClient:    &http.Client{Timeout: 30 * time.Second},
-		mediaHTTPClient:  &http.Client{Timeout: 30 * time.Second},
-		apiRateLimiter:   rate.NewLimiter(rate.Every(time.Second/time.Duration(apiPerSec)), 1),
-		mediaRateLimiter: rate.NewLimiter(rate.Every(time.Second/time.Duration(mediaPerSec)), 1),
-		mu:               sync.Mutex{},
-		lastAccessed:     make(map[string]time.Time),
+		api:          &http.Client{Timeout: 30 * time.Second},
+		media:        &http.Client{Timeout: 30 * time.Second},
+		apiLimiter:   rate.NewLimiter(rate.Every(time.Second/time.Duration(apiPerSec)), 1),
+		mediaLimiter: rate.NewLimiter(rate.Every(time.Second/time.Duration(mediaPerSec)), 1),
+		SSL:          ssl,
+		IFMS:         ifms,
 	}
 }
 
-// Clears the lastAccessed map
-func (c *Client) ResetLastAccessed() {
-	c.mu.Lock()
-	c.lastAccessed = make(map[string]time.Time)
-	c.mu.Unlock()
-}
+// do sends a request with the appropriate rate limiting for the
+// specific subdomain, errors are returned on status codes 400-500
+func (c *Client) do(method, domain, board, endpoint string, lastAccessed time.Time) (*http.Response, time.Time, error) {
+	// Create the *http.Request
+	req, err := http.NewRequest(method, c.url(domain, board, endpoint), nil)
+	if err != nil {
+		return nil, time.Time{}, err
+	}
 
-// Error returned as long as the status code is not 200 or 304
-// If ifsm then does not set an If-Modified-Since Header but always keeps track of lastAccessed
-func (c *Client) sendRequest(req *http.Request, ifsm bool, subdomain string) (*http.Response, error) {
 	// Setting the If-Modified-Since Header
-	if ifsm {
-		t, found := c.lastAccessed[req.URL.String()]
-		if found {
-			req.Header.Set("If-Modified-Since", t.Format("Mon, 02 Jan 2006 15:04:05 GMT"))
-		}
+	if c.IFMS && lastAccessed != (time.Time{}) {
+		req.Header.Set("If-Modified-Since", lastAccessed.Format("Mon, 02 Jan 2006 15:04:05 GMT"))
 	}
 
-	// Rate limiting and send the request
+	// Choose the correct rate limiter and http client
 	var rl *rate.Limiter
 	var client *http.Client
-	if subdomain == APIDomain {
-		client = c.apiHTTPClient
-		rl = c.apiRateLimiter
-	} else if subdomain == MediaDomain || subdomain == StaticDomain || subdomain == BoardsDomain {
-		client = c.mediaHTTPClient
-		rl = c.mediaRateLimiter
-	} else {
-		return nil, ErrEndpointType
+	switch domain {
+	case ApiDomain:
+		client = c.api
+		rl = c.apiLimiter
+	case MediaDomainA, MediaDomainB, StaticDomain, BoardsDomain:
+		client = c.media
+		rl = c.mediaLimiter
+	default:
+		return nil, time.Time{}, fmt.Errorf("request subdomain is invalid: %s", domain)
 	}
 
-	ctx := context.Background()
-	err := rl.Wait(ctx) // This is a blocking call. Honors the rate limit
+	// Rate limit if needed and send the request
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	err = rl.Wait(ctx)
 	if err != nil {
-		return nil, err
+		return nil, time.Time{}, err
 	}
+	t := time.Now().In(gmt)
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, time.Time{}, err
 	}
 
-	// Sets the If-Set-Modified Headers
-	if ifsm {
-		c.mu.Lock()
-		c.lastAccessed[req.URL.String()] = time.Now().In(gmt)
-		c.mu.Unlock()
+	// Returns an error on status codes 400-500
+	if resp.StatusCode == 404 {
+		return nil, t, ErrNotFound
+	} else if resp.StatusCode >= 400 && resp.StatusCode <= 500 {
+		return nil, t, fmt.Errorf("response from api has invalid status: %d", resp.StatusCode)
 	}
 
-	// If the status code is not 200 or 304 then return an error
-	if resp.StatusCode != 200 && resp.StatusCode != 304 {
-		return nil, ErrNotFound
-	}
-
-	return resp, nil
+	return resp, t, nil
 }
 
-// Wraps sendRequest to be able to specify the method and url already
-func (c *Client) createAndSendRequest(method, subdomain, board, endpoint string, scheme HTTPScheme, ifsm bool) (*http.Response, error) {
-	if scheme == "" {
-		scheme = HTTP
-	} else if !validScheme(scheme) {
-		return nil, ErrInvalidScheme
+// get sends a GET request as specified in the do method
+func (c *Client) get(domain, board, endpoint string, lastAccessed time.Time) (*http.Response, time.Time, error) {
+	return c.do("GET", domain, board, endpoint, lastAccessed)
+}
+
+// url formats the request url
+func (c *Client) url(domain, board, endpoint string) string {
+	scheme := "http"
+	if c.SSL {
+		scheme = "https"
 	}
 
-	url := formatURL(subdomain, board, endpoint, scheme)
-	req, err := http.NewRequest(method, url, nil)
-	if err != nil {
-		return nil, err
+	if board != "" {
+		board := strings.Trim(board, "/")
+		return fmt.Sprintf("%s://%s/%s/%s", scheme, domain, board, endpoint)
+	} else {
+		return fmt.Sprintf("%s://%s/%s", scheme, domain, endpoint)
 	}
-
-	resp, err := c.sendRequest(req, ifsm, subdomain)
-	if err != nil {
-		return nil, err
-	}
-	return resp, nil
 }

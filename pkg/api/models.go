@@ -1,12 +1,29 @@
 package api
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"time"
+)
+
+// modified time
+
+type modTime time.Time
+
+func (m *modTime) time() time.Time {
+	return time.Time(*m)
+}
+
+func (m *modTime) ClearLastModified() {
+	*m = modTime(time.Time{})
+}
 
 // general structs
+
 type Post struct {
 	// Custom fields implemented by crow
 	Board   string `json:"board"`    // The directory the board is located in.
 	HasFile bool   `json:"has_file"` // Whether the post has a file attached
+
 	// Fields from the API
 	No              int         `json:"no"`             // The numeric post ID
 	RepliesTo       int         `json:"resto"`          // For replies: this is the ID of the thread being replied to. For OP: this value is zero
@@ -26,7 +43,7 @@ type Post struct {
 	Filename        string      `json:"filename"`       // Filename as it appeared on the poster's device
 	Ext             string      `json:"ext"`            // Filetype
 	Filesize        int         `json:"fsize"`          // Size of uploaded file in bytes
-	MD5             string      `json:"md5"`           // 24 character, packed base64 MD5 hash of file
+	MD5             string      `json:"md5"`            // 24 character, packed base64 MD5 hash of file
 	ImageWidth      int         `json:"w"`              // Image width dimension
 	ImageHeight     int         `json:"h"`              // Image height dimension
 	ThumbnailWidth  int         `json:"tn_w"`           // Thumbnail image width dimension
@@ -52,93 +69,100 @@ type Post struct {
 }
 
 // boards.json
+
 type Boards struct {
+	modTime
+
 	Boards     []Board           `json:"boards"`
 	TrollFlags map[string]string `json:"troll_flags"`
 }
 
 type Board struct {
-	Board           string   `json:"board"`             // The directory the board is located in.
-	Title           string   `json:"title"`             // The readable title at the top of the board.
-	WorkSafe        Bool     `json:"ws_board"`          // Is the board worksafe
-	PerPage         int      `json:"per_page"`          // How many threads are on a single index page
-	Pages           int      `json:"pages"`             // How many index pages does the board have
-	MaxFilesize     int      `json:"max_filesize"`      // Maximum file size allowed for non .webm attachments (in KB)
-	MaxWebmFilesize int      `json:"max_webm_filesize"` // Maximum file size allowed for .webm attachments (in KB)
-	MaxCommentChars int      `json:"max_comment_chars"` // Maximum number of characters allowed in a post comment
-	MaxWebmDuration int      `json:"max_webm_duration"` // Maximum duration of a .webm attachment (in seconds)
-	BumpLimit       int      `json:"bump_limit"`        // Maximum number of replies allowed to a thread before the thread stops bumping
-	ImageLimit      int      `json:"image_limit"`       // Maximum number of image replies per thread before image replies are discarded
-	Cooldowns       Cooldown `json:"cooldowns"`
-	MetaDescription string   `json:"meta_description"` // SEO meta description content for a board
-	Spoilers        Bool     `json:"spoilers"`         // Are spoilers enabled
-	CustomSpoilers  int      `json:"custom_spoilers"`  // How many custom spoilers does the board have
-	IsArchived      Bool     `json:"is_archived"`      // Are archives enabled for the board
-	TrollFlags      Bool     `json:"troll_flags"`      // Are troll flags enabled on the board
-	CountryFlags    Bool     `json:"country_flags"`    // Are flags showing the poster's country enabled on the board
-	UserIDs         Bool     `json:"user_ids"`         // Are poster ID tags enabled on the board
-	Oekaki          Bool     `json:"oekaki"`           // Can users submit drawings via browser the Oekaki app
-	SjisTags        Bool     `json:"sjis_tags"`        // Can users submit sjis drawings using the [sjis] tags
-	CodeTags        Bool     `json:"code_tags"`        // Board supports code syntax highlighting using the [code] tags
-	MathTags        Bool     `json:"math_tags"`        // Board supports [math] TeX and [eqn] tags
-	TextOnly        Bool     `json:"text_only"`        // Is image posting disabled for the board
-	ForcedAnon      Bool     `json:"forced_anon"`      // Is the name field disabled on the board
-	WebmAudio       Bool     `json:"webm_audio"`       // Are webms with audio allowed?
-	RequireSubject  Bool     `json:"require_subject"`  // Do OPs require a subject
-	MinImageWidth   int      `json:"min_image_width"`  // What is the minimum image width (in pixels)
-	MinImageHeight  int      `json:"min_image_height"` // What is the minimum image height (in pixels)
-}
-
-type Cooldown struct {
-	Threads int `json:"threads"`
-	Replies int `json:"replies"`
-	Images  int `json:"images"`
+	Board           string `json:"board"`             // The directory the board is located in.
+	Title           string `json:"title"`             // The readable title at the top of the board.
+	WorkSafe        Bool   `json:"ws_board"`          // Is the board worksafe
+	PerPage         int    `json:"per_page"`          // How many threads are on a single index page
+	Pages           int    `json:"pages"`             // How many index pages does the board have
+	MaxFilesize     int    `json:"max_filesize"`      // Maximum file size allowed for non .webm attachments (in KB)
+	MaxWebmFilesize int    `json:"max_webm_filesize"` // Maximum file size allowed for .webm attachments (in KB)
+	MaxCommentChars int    `json:"max_comment_chars"` // Maximum number of characters allowed in a post comment
+	MaxWebmDuration int    `json:"max_webm_duration"` // Maximum duration of a .webm attachment (in seconds)
+	BumpLimit       int    `json:"bump_limit"`        // Maximum number of replies allowed to a thread before the thread stops bumping
+	ImageLimit      int    `json:"image_limit"`       // Maximum number of image replies per thread before image replies are discarded
+	Cooldowns       struct {
+		Threads int `json:"threads"` // Thread cooldown time
+		Replies int `json:"replies"` // Reply cooldown time
+		Images  int `json:"images"`  // Image cooldown time
+	} `json:"cooldowns"`
+	MetaDescription string `json:"meta_description"` // SEO meta description content for a board
+	Spoilers        Bool   `json:"spoilers"`         // Are spoilers enabled
+	CustomSpoilers  int    `json:"custom_spoilers"`  // How many custom spoilers does the board have
+	IsArchived      Bool   `json:"is_archived"`      // Are archives enabled for the board
+	TrollFlags      Bool   `json:"troll_flags"`      // Are troll flags enabled on the board
+	CountryFlags    Bool   `json:"country_flags"`    // Are flags showing the poster's country enabled on the board
+	UserIDs         Bool   `json:"user_ids"`         // Are poster ID tags enabled on the board
+	Oekaki          Bool   `json:"oekaki"`           // Can users submit drawings via browser the Oekaki app
+	SjisTags        Bool   `json:"sjis_tags"`        // Can users submit sjis drawings using the [sjis] tags
+	CodeTags        Bool   `json:"code_tags"`        // Board supports code syntax highlighting using the [code] tags
+	MathTags        Bool   `json:"math_tags"`        // Board supports [math] TeX and [eqn] tags
+	TextOnly        Bool   `json:"text_only"`        // Is image posting disabled for the board
+	ForcedAnon      Bool   `json:"forced_anon"`      // Is the name field disabled on the board
+	WebmAudio       Bool   `json:"webm_audio"`       // Are webms with audio allowed?
+	RequireSubject  Bool   `json:"require_subject"`  // Do OPs require a subject
+	MinImageWidth   int    `json:"min_image_width"`  // What is the minimum image width (in pixels)
+	MinImageHeight  int    `json:"min_image_height"` // What is the minimum image height (in pixels)
 }
 
 // threads.json
+
 type ThreadList struct {
+	modTime
+
 	Board string `json:"board"`
-	Pages []ThreadListPage `json:"pages"`
-}
-
-type ThreadListPage struct {
-	Page    int                `json:"page"`    // The page number that the following Threads array is on
-	Threads []ThreadListThread `json:"threads"` // The array of ThreadListThread objects
-}
-
-type ThreadListThread struct {
-	No           int       `json:"no"`            // The OP ID of a thread
-	LastModified Timestamp `json:"last_modified"` // The UNIX timestamp marking the last time the thread was modified (post added/modified/deleted, thread closed/sticky settings modified)
-	Replies      int       `json:"replies"`       // A numeric count of the number of replies in the thread
+	Pages []struct {
+		Page    int `json:"page"` // The page number that the following Threads slice is on
+		Threads []struct {
+			No           int       `json:"no"`            // The OP ID of a thread
+			LastModified Timestamp `json:"last_modified"` // The UNIX timestamp marking the last time the thread was modified (post added/modified/deleted, thread closed/sticky settings modified)
+			Replies      int       `json:"replies"`       // A numeric count of the number of replies in the thread
+		} `json:"threads"` // The threads on the page
+	} `json:"pages"`
 }
 
 // catalog.json
+
 type Catalog struct {
-	Board string        `json:"board"`
-	Pages []CatalogPage `json:"pages"`
-}
+	modTime
 
-type CatalogPage struct {
-	Page    int            `json:"page"` // The page number that the following Threads array is on
-	Threads CatalogThreads `json:"threads"`
+	Board string `json:"board"`
+	Pages []struct {
+		Page    int     `json:"page"` // The page number that the following Threads array is on
+		Threads []*Post `json:"threads"`
+	} `json:"pages"`
 }
-
-type CatalogThreads []*Post
 
 // archive.json
+
 type Archive struct {
-	Board string `json:"board"`
-	PostIDs []int  `json:"post_ids"`// Array of integers. These are the OP numbers of archived threads
+	modTime
+
+	Board   string `json:"board"`
+	PostIDs []int  `json:"post_ids"` // Array of integers. These are the OP numbers of archived threads
 }
 
 // [board]/[1-15].json, [board]/thread/[op ID].json
+
 type Page struct {
+	modTime
+
 	No      int      `json:"no"`
 	Board   string   `json:"board"`
 	Threads []Thread `json:"threads"`
 }
 
 type Thread struct {
+	modTime
+
 	Board        string    `json:"board"`         // The board directory
 	No           int       `json:"no"`            // The ID of the first post in the thread
 	Closed       Bool      `json:"closed"`        // If the thread is closed to replies
@@ -153,4 +177,20 @@ type Thread struct {
 	ArchivedOn   Timestamp `json:"archived_on"`   // UNIX timestamp the post was archived
 	Sticky       Bool      `json:"sticky"`        // If the thread is being pinned to the top of the page
 	Posts        []*Post   `json:"posts"`         // Posts in the thread
+}
+
+func (t *Thread) addThreadAttributes(mt modTime) {
+	t.modTime = mt
+	t.No = t.Posts[0].No
+	t.Closed = t.Posts[0].Closed
+	t.Subject = t.Posts[0].Subject
+	t.Comment = t.Posts[0].Comment
+	t.Replies = t.Posts[0].Replies
+	t.LastModified = t.Posts[0].LastModified
+	t.UniqueIPs = t.Posts[0].UniqueIPs
+	t.BumpLimit = t.Posts[0].BumpLimit
+	t.ImageLimit = t.Posts[0].ImageLimit
+	t.Archived = t.Posts[0].Archived
+	t.ArchivedOn = t.Posts[0].ArchivedOn
+	t.Sticky = t.Posts[0].Sticky
 }

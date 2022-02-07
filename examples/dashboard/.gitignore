@@ -1,5 +1,0 @@
-.env
-influxdb/data/influxd.bolt
-influxdb/data/engine
-influxdb/config/influx-configs
-grafana/data/grafana.db

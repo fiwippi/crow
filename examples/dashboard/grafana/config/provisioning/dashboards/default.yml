@@ -1,8 +1,0 @@
-apiVersion: 1
-
-providers:
-  - name: fiwippi # A uniquely identifiable name for the provider
-    folder: 4chan # The folder where to place the dashboards
-    type: file
-    options:
-      path:  /var/lib/grafana/dashboards
