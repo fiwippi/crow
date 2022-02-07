@@ -5,11 +5,11 @@
 ## Install
 ### Archiver
 ```
-go install github.com/fiwippi/crow
+go install github.com/fiwippi/crow@latest
 ```
 ### API
 ```
-go get github.com/fiwippi/crow/api
+go get github.com/fiwippi/crow/pkg/api
 ```
 
 ## Usage
